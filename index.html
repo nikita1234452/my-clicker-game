@@ -1,176 +1,304 @@
-                    <!DOCTYPE html>
+                                            if (balance >= upgradeCost) {
+                <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>King Kliker: Artifacts Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>King Kliker: Artifacts & Fever</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: radial-gradient(circle, #1a1a2e 0%, #16213e 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
+        body { 
+            background: #0f172a; 
+            color: white; 
+            text-align: center; 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            margin: 0; 
+            padding-bottom: 70px; 
+            touch-action: manipulation; 
+            overflow-x: hidden;
             user-select: none;
+            -webkit-user-select: none;
         }
+        
+        #header { background: #1e293b; padding: 15px; border-bottom: 3px solid #e91e63; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        #money { font-size: 34px; color: #f1c40f; font-weight: bold; text-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
+        
+        .tabs { display: flex; background: #1e293b; position: sticky; top: 95px; z-index: 999; border-bottom: 1px solid #334155; }
+        .tab { flex: 1; padding: 15px 5px; border: none; background: none; color: #94a3b8; cursor: pointer; font-size: 11px; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
+        .tab.active { color: #fff; border-bottom: 3px solid #e91e63; background: rgba(233, 30, 99, 0.1); }
 
-        #stats {
-            font-size: 28px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 10px #4ecca3;
-        }
+        #game-zone { height: 260px; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        #coin-btn { font-size: 100px; background: none; border: none; cursor: pointer; outline: none; z-index: 10; transition: transform 0.05s; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1)); }
+        #coin-btn:active { transform: scale(0.85); }
 
-        #click-area {
-            position: relative;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
+        .fever-active-coin { animation: fever-shake 0.2s infinite; filter: drop-shadow(0 0 30px #ff9800) !important; }
+        @keyframes fever-shake { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.1) rotate(5deg); } }
 
-        #click-area:active {
-            transform: scale(0.95);
-        }
+        .floating-text { position: absolute; color: #f1c40f; font-weight: bold; font-size: 26px; pointer-events: none; animation: float-up 0.7s ease-out forwards; z-index: 2000; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .particle { position: absolute; pointer-events: none; animation: particle-anim 0.8s ease-out forwards; z-index: 1500; }
+        
+        @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
+        @keyframes particle-anim { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
 
-        #main-button {
-            width: 200px;
-            height: 200px;
-            background: linear-gradient(145deg, #4ecca3, #45b293);
-            border-radius: 50%;
-            border: 8px solid #ffffff22;
-            box-shadow: 0 0 30px rgba(78, 204, 163, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 80px;
-        }
+        .section { display: none; padding: 15px; animation: fadeIn 0.3s; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .floating-text {
-            position: absolute;
-            color: #4ecca3;
-            font-weight: bold;
-            font-size: 24px;
-            pointer-events: none;
-            animation: floatUp 0.8s ease-out forwards;
-        }
+        .card { background: #1e293b; margin-bottom: 10px; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #334155; }
+        .buy-btn { background: #e91e63; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 90px; transition: 0.2s; }
+        .buy-btn:active { transform: scale(0.95); }
+        .buy-btn:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
+        .buy-btn.owned { background: #10b981 !important; }
+        .locked { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
 
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-100px); }
-        }
-
-        #shop {
-            margin-top: 30px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        .item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .item.artifact {
-            border-color: #ffd700;
-            background: rgba(255, 215, 0, 0.05);
-        }
-
-        button {
-            background: #4ecca3;
-            border: none;
-            color: #1a1a2e;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
-        }
+        .fever-bg { height: 10px; background: #0f172a; width: 100%; margin-top: 10px; border-radius: 5px; border: 1px solid #334155; overflow: hidden; }
+        #fever-bar { height: 100%; background: linear-gradient(90deg, #ff9800, #ff5722); width: 0%; transition: width 0.1s linear; }
+        
+        #case-container { position: relative; width: 100%; height: 120px; background: #0f172a; border: 2px solid #e91e63; border-radius: 15px; overflow: hidden; margin-top: 15px; display: none; }
+        #case-line { height: 100%; display: flex; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); }
+        .case-item { min-width: 100px; height: 100%; display: flex; justify-content: center; align-items: center; border-right: 1px solid #1e293b; font-size: 35px; background: #1e293b; }
+        #case-pointer { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 4px; height: 100%; background: #fff; z-index: 5; box-shadow: 0 0 15px #e91e63; }
+        
+        .artifact-card { background: #1e293b; padding: 12px; border-radius: 10px; margin-top: 8px; border-left: 5px solid #e91e63; display: flex; align-items: center; gap: 15px; transition: 0.3s; }
     </style>
 </head>
 <body>
 
-    <div id="stats">💰 <span id="balance">0</span></div>
+<div id="header">
+    <div id="money">0</div>
+    <div style="font-size:13px; color:#94a3b8; margin-top:5px;">💎 КРИСТАЛЛЫ: <span id="crys" style="color:#3498db; font-weight:bold;">0</span></div>
+    <div class="fever-bg"><div id="fever-bar"></div></div>
+    <div id="fever-status" style="font-size:11px; color:#ff9800; font-weight:bold; margin-top:4px; letter-spacing:1px;">ЗАРЯДКА...</div>
+</div>
+
+<div class="tabs">
+    <button class="tab active" onclick="sh('shop', this)">Магазин</button>
+    <button class="tab" onclick="sh('skins', this)">Скины</button>
+    <button class="tab" onclick="sh('case', this)">Кейсы</button>
+    <button class="tab" onclick="sh('pres', this)">Престиж</button>
+</div>
+
+<div id="game-zone">
+    <button id="coin-btn" onmousedown="tap(event)" ontouchstart="tap(event)">🪙</button>
+</div>
+
+<div id="shop" class="section active">
+    <div class="card"><div><b>Сила клика</b><br><small style="color:#94a3b8">Цена: <span id="c1">10</span></small></div><button class="buy-btn" onclick="buy('p')">Lvl <span id="pl_display">1</span></button></div>
+    <div class="card"><div><b>Авто-кликер</b><br><small style="color:#94a3b8">Цена: <span id="c2">50</span></small></div><button class="buy-btn" onclick="buy('a')">Lvl <span id="al">0</span></button></div>
+</div>
+
+<div id="skins" class="section">
+    <h4 style="color:#e91e63; margin:10px 0;">МОНЕТЫ</h4>
+    <div class="card"><div>🌟 Звезда (1к)</div><button class="buy-btn" id="b-🌟" onclick="buyS('🌟', 1000)">КУПИТЬ</button></div>
+    <div class="card"><div>🌷 Тюльпан (5к)</div><button class="buy-btn" id="b-🌷" onclick="buyS('🌷', 5000)">КУПИТЬ</button></div>
     
-    <div id="click-area" onclick="handleClick(event)">
-        <div id="main-button">👑</div>
-    </div>
+    <h4 style="color:#f1c40f; margin:20px 0 10px 0;">КРИСТАЛЛЫ 💎</h4>
+    <div class="card" id="s-1"><div>🤖 Робот (1💎)</div><button class="buy-btn" onclick="setS('🤖', 1)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-9"><div>👑 Король (9💎)</div><button class="buy-btn" onclick="setS('👑', 9)">ВЫБРАТЬ</button></div>
+</div>
 
-    <div id="shop">
-        <div class="item">
-            <div>Улучшение Клика</div>
-            <div id="click-cost">Цена: 10</div>
-            <button onclick="buyUpgrade()">Купить</button>
+<div id="case" class="section">
+    <div class="card" style="display:block; text-align:center">
+        <h3 style="margin-top:0">📦 Эпический Кейс</h3>
+        <p style="color:#94a3b8">Цена: <span style="color:#f1c40f; font-weight:bold;">5,000</span> монет</p>
+        <div id="case-container">
+            <div id="case-pointer"></div>
+            <div id="case-line"></div>
         </div>
-        <div class="item artifact">
-            <div>🏺 Артефакт: Меч</div>
-            <div>+5 за клик</div>
-            <div id="art-cost">Цена: 100</div>
-            <button id="art-btn" onclick="buyArtifact()">Взять</button>
-        </div>
+        <button id="open-btn" class="buy-btn" style="width:100%; height:55px; margin-top:20px; font-size:18px" onclick="startCase()">ОТКРЫТЬ</button>
+        <div id="art-list" style="margin-top:25px; text-align:left;"></div>
     </div>
+</div>
 
-    <script>
-        let balance = 0;
-        let clickPower = 1;
-        let upgradeCost = 10;
-        let artifactCost = 100;
-        let hasArtifact = false;
+<div id="pres" class="section">
+    <div class="card" style="display:block; text-align:center">
+        <h3>Престиж</h3>
+        <p style="color:#94a3b8">Получите +1 💎 и x1.2 к доходу</p>
+        <p>Нужно монет: <span id="p-price" style="color:#f1c40f; font-weight:bold">10,000</span></p>
+        <button class="buy-btn" style="width:100%; height:55px; font-size:18px" onclick="doP()">ОБНУЛИТЬСЯ</button>
+    </div>
+</div>
 
-        function updateDisplay() {
-            document.getElementById('balance').innerText = Math.floor(balance);
-            document.getElementById('click-cost').innerText = `Цена: ${upgradeCost}`;
-            document.getElementById('art-cost').innerText = hasArtifact ? "Владеете" : `Цена: ${artifactCost}`;
-            document.getElementById('art-btn').disabled = hasArtifact || balance < artifactCost;
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let m = Number(localStorage.getItem('m')) || 0;
+    let p = Number(localStorage.getItem('p')) || 1;
+    let c1 = Number(localStorage.getItem('c1')) || 10;
+    let a = Number(localStorage.getItem('a')) || 0;
+    let c2 = Number(localStorage.getItem('c2')) || 50;
+    let cr = Number(localStorage.getItem('cr')) || 0;
+    let skin = localStorage.getItem('skin') || '🪙';
+    let owned = JSON.parse(localStorage.getItem('owned')) || ['🪙'];
+    let artifacts = JSON.parse(localStorage.getItem('arts')) || [];
+    
+    let fScale = 0, isF = false, isSpinning = false;
+
+    const pool = [
+        {e:'🔋', n:'Батарейка', c:'#4ade80', b:1}, 
+        {e:'⚙️', n:'Шестеренка', c:'#94a3b8', b:2},
+        {e:'💎', n:'Кристаллик', c:'#3498db', b:5},
+        {e:'⚡', n:'Молния', c:'#f1c40f', b:10},
+        {e:'👑', n:'Корона', c:'#e91e63', b:25}
+    ];
+
+    function startCase() {
+        if (m < 5000 || isSpinning) return;
+        m -= 5000;
+        isSpinning = true;
+        document.getElementById('open-btn').disabled = true;
+        
+        const line = document.getElementById('case-line');
+        const container = document.getElementById('case-container');
+        container.style.display = "block";
+        line.innerHTML = '';
+        line.style.transition = "none";
+        line.style.transform = "translateX(0)";
+
+        let items = [];
+        for(let i=0; i<45; i++) {
+            let item = pool[Math.floor(Math.random() * pool.length)];
+            items.push(item);
+            let div = document.createElement('div');
+            div.className = 'case-item';
+            div.style.color = item.c;
+            div.innerHTML = item.e;
+            line.appendChild(div);
         }
 
-        function handleClick(event) {
-            balance += clickPower;
-            
-            // Создание вылетающего текста
-            const text = document.createElement('div');
-            text.className = 'floating-text';
-            text.innerText = `+${clickPower}`;
-            text.style.left = `${event.clientX - 20}px`;
-            text.style.top = `${event.clientY - 40}px`;
-            document.body.appendChild(text);
-            
-            setTimeout(() => text.remove(), 800);
-            updateDisplay();
-        }
+        setTimeout(() => {
+            line.style.transition = "transform 4s cubic-bezier(0.15, 0, 0.15, 1)";
+            let stopPos = (40 * 100) - (container.offsetWidth / 2) + 50;
+            line.style.transform = `translateX(-${stopPos}px)`;
+        }, 50);
 
-        function buyUpgrade() {
-            if (balance >= upgradeCost) {
-                balance -= upgradeCost;
-                clickPower += 1;
-                upgradeCost = Math.round(upgradeCost * 1.5);
-                updateDisplay();
+        setTimeout(() => {
+            let win = items[40];
+            tg.HapticFeedback.notificationOccurred('success');
+            artifacts.push(win);
+            isSpinning = false;
+            document.getElementById('open-btn').disabled = false;
+            upd();
+        }, 4100);
+    }
+
+    function tap(e) {
+        if (e) e.preventDefault();
+        let artBonus = artifacts.reduce((s, a) => s + a.b, 0);
+        let inc = (p + artBonus) * (1 + cr * 0.2);
+        if(isF) inc *= 10;
+        m += inc;
+        
+        if(!isF) { 
+            fScale += 2; 
+            if(fScale >= 100) { fScale = 100; startF(); } 
+        }
+        
+        spawnEffects(inc, e);
+        upd();
+        tg.HapticFeedback.impactOccurred('light');
+    }
+
+    function spawnEffects(v, e) {
+        const zone = document.getElementById('game-zone');
+        let cx = e.clientX || (e.touches ? e.touches[0].clientX : zone.offsetWidth/2);
+        let cy = e.clientY || (e.touches ? e.touches[0].clientY : zone.offsetHeight/2);
+        let r = zone.getBoundingClientRect();
+        let x = cx - r.left;
+        let y = cy - r.top;
+
+        // Цифры
+        const t = document.createElement('div');
+        t.className = 'floating-text';
+        t.innerText = '+' + Math.floor(v);
+        t.style.left = x + 'px'; t.style.top = y + 'px';
+        zone.appendChild(t);
+        setTimeout(() => t.remove(), 600);
+
+        // Частицы 🪙
+        for(let i=0; i<3; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.innerText = '🪙';
+            p.style.left = x + 'px'; p.style.top = y + 'px';
+            p.style.setProperty('--dx', (Math.random()*150 - 75) + 'px');
+            p.style.setProperty('--dy', (Math.random()*-150 - 50) + 'px');
+            zone.appendChild(p);
+            setTimeout(() => p.remove(), 800);
+        }
+    }
+
+    function upd() {
+        let artBonus = 0;
+        const list = document.getElementById('art-list');
+        list.innerHTML = artifacts.length > 0 ? '<h4 style="margin-bottom:10px">ТВОИ АРТЕФАКТЫ:</h4>' : '';
+        artifacts.forEach(art => {
+            artBonus += art.b;
+            let div = document.createElement('div');
+            div.className = 'artifact-card';
+            div.style.borderLeftColor = art.c;
+            div.innerHTML = `<span style="font-size:24px">${art.e}</span> <div><b>${art.n}</b><br><small style="color:#4ade80">+${art.b} к клику</small></div>`;
+            list.appendChild(div);
+        });
+
+        document.getElementById('money').innerText = Math.floor(m).toLocaleString();
+        document.getElementById('crys').innerText = cr;
+        document.getElementById('pl_display').innerText = p + (artBonus > 0 ? ` (+${artBonus})` : "");
+        document.getElementById('al').innerText = a;
+        document.getElementById('c1').innerText = c1;
+        document.getElementById('c2').innerText = c2;
+        document.getElementById('p-price').innerText = (10000 + (cr * 10000)).toLocaleString();
+        document.getElementById('coin-btn').innerText = skin;
+        document.getElementById('fever-bar').style.width = fScale + "%";
+
+        localStorage.setItem('m',m); localStorage.setItem('p',p); localStorage.setItem('cr',cr);
+        localStorage.setItem('c1',c1); localStorage.setItem('c2',c2);
+        localStorage.setItem('skin',skin); localStorage.setItem('owned', JSON.stringify(owned));
+        localStorage.setItem('arts', JSON.stringify(artifacts));
+    }
+
+    function sh(id, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function setS(s, req) { if(cr >= req) { skin = s; upd(); } }
+    function buyS(s, cost) { if(owned.includes(s)) skin = s; else if(m >= cost) { m -= cost; owned.push(s); skin = s; } upd(); }
+    
+    function buy(type) {
+        if(type=='p' && m >= c1) { m -= c1; p++; c1 = Math.round(c1*1.7); }
+        if(type=='a' && m >= c2) { m -= c2; a++; c2 = Math.round(c2*1.8); }
+        upd();
+    }
+
+    function startF() {
+        isF = true;
+        tg.HapticFeedback.notificationOccurred('warning');
+        document.getElementById('fever-status').innerText = "ЛИХОРАДКА X10! 🔥";
+        document.getElementById('coin-btn').classList.add('fever-active-coin');
+        let fTimer = setInterval(() => {
+            fScale -= 1.5; 
+            if(fScale <= 0) { 
+                fScale = 0; isF = false; 
+                document.getElementById('fever-status').innerText = "ЗАРЯДКА...";
+                document.getElementById('coin-btn').classList.remove('fever-active-coin');
+                clearInterval(fTimer); 
+                upd(); 
             }
-        }
+            document.getElementById('fever-bar').style.width = fScale + "%";
+        }, 100);
+    }
 
-        function buyArtifact() {
-            if (balance >= artifactCost && !hasArtifact) {
-                balance -= artifactCost;
-                clickPower += 5;
-                hasArtifact = true;
-                updateDisplay();
-            }
-        }
+    function doP() {
+        let cost = 10000 + (cr * 10000);
+        if(m >= cost) { m=0; cr++; p=1; a=0; c1=10; c2=50; artifacts=[]; upd(); alert("ПРЕСТИЖ ВЫПОЛНЕН! +1 💎"); }
+    }
 
-        updateDisplay();
-    </script>
+    setInterval(() => { m += (a * (1 + cr * 0.2)) / 10; upd(); }, 100);
+    upd();
+</script>
 </body>
 </html>
