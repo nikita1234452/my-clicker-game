@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Telegram Artifact Clicker</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { 
+            background: #111; 
+            color: white; 
+            text-align: center; 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding-bottom: 50px; 
+            touch-action: manipulation; 
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        #header { background: #000; padding: 15px; border-bottom: 2px solid #e91e63; position: sticky; top: 0; z-index: 1000; }
+        #money { font-size: 30px; color: #f1c40f; font-weight: bold; }
+        
+        .tabs { display: flex; background: #222; position: sticky; top: 80px; z-index: 999; }
+        .tab { flex: 1; padding: 15px 5px; border: none; background: none; color: #888; cursor: pointer; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .tab.active { color: #fff; border-bottom: 3px solid #e91e63; }
+
+        #game-zone { height: 220px; display: flex; justify-content: center; align-items: center; position: relative; }
+        #coin-btn { font-size: 90px; background: none; border: none; cursor: pointer; outline: none; z-index: 10; transition: transform 0.1s; }
+        #coin-btn:active { transform: scale(0.8); }
+
+        .fever-active-coin { animation: fever-shake 0.3s infinite; }
+        @keyframes fever-shake { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+        .floating-text { position: absolute; color: #f1c40f; font-weight: bold; font-size: 24px; pointer-events: none; animation: float-up 0.6s ease-out forwards; z-index: 2000; }
+        @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-100px); opacity: 0; } }
+
+        .section { display: none; padding: 15px; }
+        .section.active { display: block; }
+        .card { background: #222; margin-bottom: 8px; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        .buy-btn { background: #e91e63; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; min-width: 85px; }
+        .buy-btn:disabled { background: #555; cursor: not-allowed; }
+        .buy-btn.owned { background: #27ae60 !important; }
+        .locked { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
+
+        .fever-bg { height: 8px; background: #333; width: 100%; margin-top: 10px; border-radius: 4px; overflow: hidden; }
+        #fever-bar { height: 100%; background: #ff9800; width: 0%; transition: width 0.1s linear; }
+        
+        #case-container { position: relative; width: 100%; height: 120px; background: #1a1a1a; border: 2px solid #e91e63; border-radius: 10px; overflow: hidden; margin-top: 15px; display: none; }
+        #case-line { height: 100%; display: flex; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); will-change: transform; }
+        .case-item { min-width: 100px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; border-right: 1px solid #333; font-size: 30px; background: #2a2a2a; }
+        #case-pointer { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 4px; height: 100%; background: #fff; z-index: 5; box-shadow: 0 0 10px #e91e63; }
+        .artifact-card { background: #1a1a1a; padding: 8px; border-radius: 5px; margin-top: 5px; font-size: 13px; border-left: 4px solid #e91e63; display: flex; align-items: center; gap: 10px; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <div id="money">0</div>
+    <div style="font-size:12px; color:#aaa;">💎 КРИСТАЛЛЫ: <span id="crys">0</span></div>
+    <div class="fever-bg"><div id="fever-bar"></div></div>
+    <div id="fever-status" style="font-size:10px; color:#ff9800; font-weight:bold; margin-top:3px;">ЗАРЯДКА...</div>
+</div>
+
+<div class="tabs">
+    <button class="tab active" onclick="sh('shop', this)">Магазин</button>
+    <button class="tab" onclick="sh('skins', this)">Скины</button>
+    <button class="tab" onclick="sh('case', this)">Кейсы</button>
+    <button class="tab" onclick="sh('pres', this)">Престиж</button>
+</div>
+
+<div id="game-zone">
+    <button id="coin-btn" onmousedown="tap(event)" ontouchstart="tap(event)">🪙</button>
+</div>
+
+<div id="shop" class="section active">
+    <div class="card"><div>Сила клика<br><small>Цена: <span id="c1">10</span></small></div><button class="buy-btn" onclick="buy('p')">Lvl <span id="pl_display">1</span></button></div>
+    <div class="card"><div>Авто-кликер<br><small>Цена: <span id="c2">50</span></small></div><button class="buy-btn" onclick="buy('a')">Lvl <span id="al">0</span></button></div>
+</div>
+
+<div id="skins" class="section">
+    <h4 style="color:#e91e63; margin:5px 0;">МАГАЗИН (МОНЕТЫ)</h4>
+    <div class="card"><div>🌟 Звезда (1к)</div><button class="buy-btn" id="b-🌟" onclick="buyS('🌟', 1000)">КУПИТЬ</button></div>
+    <div class="card"><div>🌷 Тюльпан (5к)</div><button class="buy-btn" id="b-🌷" onclick="buyS('🌷', 5000)">КУПИТЬ</button></div>
+    <div class="card"><div>🎈 Шарик (15к)</div><button class="buy-btn" id="b-🎈" onclick="buyS('🎈', 15000)">КУПИТЬ</button></div>
+    <div class="card"><div>🍀 Клевер (50к)</div><button class="buy-btn" id="b-🍀" onclick="buyS('🍀', 50000)">КУПИТЬ</button></div>
+    
+    <h4 style="color:#f1c40f; margin:15px 0 5px 0;">ПРЕСТИЖ (ЗА КРИСТАЛЛЫ 💎)</h4>
+    <div class="card" id="s-1"><div>🤖 Робот (1💎)</div><button class="buy-btn" onclick="setS('🤖', 1)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-2"><div>📺 ТВ (2💎)</div><button class="buy-btn" onclick="setS('📺', 2)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-3"><div>🗄️ Тумба (3💎)</div><button class="buy-btn" onclick="setS('🗄️', 3)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-4"><div>🪑 Стул (4💎)</div><button class="buy-btn" onclick="setS('🪑', 4)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-5"><div>🎮 Пульт (5💎)</div><button class="buy-btn" onclick="setS('🎮', 5)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-6"><div>☎️ Телефон (6💎)</div><button class="buy-btn" onclick="setS('☎️', 6)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-7"><div>🚪 Дверь (7💎)</div><button class="buy-btn" onclick="setS('🚪', 7)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-8"><div>🧱 Стена (8💎)</div><button class="buy-btn" onclick="setS('🧱', 8)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-9"><div>👑 Король (9💎)</div><button class="buy-btn" onclick="setS('👑', 9)">ВЫБРАТЬ</button></div>
+    <div class="card" id="s-10"><div>🪐 Космос (10💎)</div><button class="buy-btn" onclick="setS('🪐', 10)">ВЫБРАТЬ</button></div>
+</div>
+
+<div id="case" class="section">
+    <div class="card" style="display:block; text-align:center">
+        <h3>Эпический Кейс 📦</h3>
+        <p>Цена: <span style="color:#f1c40f">5,000</span> монет</p>
+        <div id="case-container">
+            <div id="case-pointer"></div>
+            <div id="case-line"></div>
+        </div>
+        <button id="open-btn" class="buy-btn" style="width:100%; height:50px; margin-top:15px;" onclick="startCase()">ОТКРЫТЬ</button>
+        <div id="art-list" style="margin-top:20px; text-align:left;"></div>
+    </div>
+</div>
+
+<div id="pres" class="section">
+    <div class="card" style="display:block; text-align:center">
+        <h3>Престиж</h3>
+        <p>Нужно монет: <span id="p-price" style="color:#f1c40f">10,000</span></p>
+        <button class="buy-btn" style="width:100%; height:50px;" onclick="doP()">ОБНУЛИТЬСЯ</button>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready();
+
+    let m = Number(localStorage.getItem('m')) || 0;
+    let p = Number(localStorage.getItem('p')) || 1;
+    let c1 = Number(localStorage.getItem('c1')) || 10;
+    let a = Number(localStorage.getItem('a')) || 0;
+    let c2 = Number(localStorage.getItem('c2')) || 50;
+    let cr = Number(localStorage.getItem('cr')) || 0;
+    let skin = localStorage.getItem('skin') || '🪙';
+    let owned = JSON.parse(localStorage.getItem('owned')) || ['🪙'];
+    let artifacts = JSON.parse(localStorage.getItem('arts')) || [];
+    
+    let fScale = 0, isF = false, isSpinning = false;
+
+    const pool = [
+        {e:'🔋', n:'Батарейка', c:'#888', b:1}, 
+        {e:'⚙️', n:'Шестеренка', c:'#888', b:2},
+        {e:'💎', n:'Кристаллик', c:'#3498db', b:5},
+        {e:'⚡', n:'Молния', c:'#f1c40f', b:10},
+        {e:'👑', n:'Корона', c:'#e91e63', b:25}
+    ];
+
+    function startCase() {
+        if (m < 5000 || isSpinning) return;
+        m -= 5000;
+        isSpinning = true;
+        document.getElementById('open-btn').disabled = true;
+        
+        const line = document.getElementById('case-line');
+        const container = document.getElementById('case-container');
+        container.style.display = "block";
+        line.innerHTML = '';
+        line.style.transition = "none";
+        line.style.transform = "translateX(0)";
+
+        let items = [];
+        for(let i=0; i<45; i++) {
+            let item = pool[Math.floor(Math.random() * pool.length)];
+            if(i === 40) item = pool[Math.random() < 0.1 ? 4 : Math.floor(Math.random()*3)];
+            items.push(item);
+            let div = document.createElement('div');
+            div.className = 'case-item';
+            div.style.color = item.c;
+            div.innerHTML = `<span>${item.e}</span>`;
+            line.appendChild(div);
+        }
+
+        setTimeout(() => {
+            line.style.transition = "transform 4s cubic-bezier(0.15, 0, 0.15, 1)";
+            let stopPos = (40 * 100) - (container.offsetWidth / 2) + 50;
+            line.style.transform = `translateX(-${stopPos}px)`;
+        }, 50);
+
+        setTimeout(() => {
+            let win = items[40];
+            tg.HapticFeedback.notificationOccurred('success');
+            alert(`ВЫПАЛО: ${win.n}! (+${win.b} к клику)`);
+            artifacts.push(win);
+            isSpinning = false;
+            document.getElementById('open-btn').disabled = false;
+            upd();
+        }, 4100);
+    }
+
+    function tap(e) {
+        if (e) e.preventDefault();
+        let artBonus = artifacts.reduce((s, a) => s + a.b, 0);
+        let inc = (p + artBonus) * (1 + cr * 0.2);
+        if(isF) inc *= 10;
+        m += inc;
+        if(!isF) { fScale += 2.5; if(fScale >= 100) { fScale = 100; startF(); } }
+        createFloatingText(inc, e);
+        upd();
+        tg.HapticFeedback.impactOccurred('medium');
+    }
+
+    function upd() {
+        let artBonus = 0;
+        const list = document.getElementById('art-list');
+        list.innerHTML = artifacts.length > 0 ? '<h4>АРТЕФАКТЫ:</h4>' : '';
+        artifacts.forEach(art => {
+            artBonus += art.b;
+            let div = document.createElement('div');
+            div.className = 'artifact-card';
+            div.style.borderLeftColor = art.c;
+            div.innerHTML = `<span>${art.e}</span> <b>${art.n}</b> (+${art.b})`;
+            list.appendChild(div);
+        });
+
+        document.getElementById('money').innerText = Math.floor(m).toLocaleString();
+        document.getElementById('crys').innerText = cr;
+        document.getElementById('pl_display').innerText = p + (artBonus > 0 ? ` (+${artBonus})` : "");
+        document.getElementById('al').innerText = a;
+        document.getElementById('c1').innerText = c1;
+        document.getElementById('c2').innerText = c2;
+        document.getElementById('p-price').innerText = (10000 + (cr * 10000)).toLocaleString();
+        document.getElementById('coin-btn').innerText = skin;
+        document.getElementById('fever-bar').style.width = fScale + "%";
+
+        ['🌟', '🌷', '🎈', '🍀'].forEach(s => {
+            let b = document.getElementById('b-'+s);
+            if(owned.includes(s)) { b.innerText = (skin == s) ? "ВЫБРАНО" : "ВЫБРАТЬ"; b.classList.add('owned'); }
+        });
+
+        for(let n = 1; n <= 10; n++) {
+            let el = document.getElementById('s-' + n);
+            if(el) { if(cr >= n) el.classList.remove('locked'); else el.classList.add('locked'); }
+        }
+
+        localStorage.setItem('m',m); localStorage.setItem('p',p); localStorage.setItem('cr',cr);
+        localStorage.setItem('c1',c1); localStorage.setItem('c2',c2);
+        localStorage.setItem('skin',skin); localStorage.setItem('owned', JSON.stringify(owned));
+        localStorage.setItem('arts', JSON.stringify(artifacts));
+    }
+
+    function sh(id, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function setS(s, req) { if(cr >= req) { skin = s; upd(); } }
+    function buyS(s, cost) { if(owned.includes(s)) skin = s; else if(m >= cost) { m -= cost; owned.push(s); skin = s; } upd(); }
+    function buy(type) {
+        if(type=='p' && m >= c1) { m -= c1; p++; c1 = Math.round(c1*1.7); }
+        if(type=='a' && m >= c2) { m -= c2; a++; c2 = Math.round(c2*1.8); }
+        upd();
+    }
+    function startF() {
+        isF = true;
+        document.getElementById('fever-bar').style.background = "#ff1100";
+        document.getElementById('fever-status').innerText = "ЛИХОРАДКА X10! 🔥";
+        document.getElementById('coin-btn').classList.add('fever-active-coin');
+        let fTimer = setInterval(() => {
+            fScale -= 2; if(fScale <= 0) { fScale = 0; isF = false; clearInterval(fTimer); upd(); }
+            document.getElementById('fever-bar').style.width = fScale + "%";
+        }, 100);
+    }
+    function createFloatingText(v, e) {
+        const zone = document.getElementById('game-zone');
+        const t = document.createElement('div');
+        t.className = 'floating-text';
+        t.innerText = '+' + Math.floor(v);
+        let x = zone.offsetWidth/2, y = zone.offsetHeight/2;
+        if(e) {
+            let cx = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+            let cy = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+            let r = zone.getBoundingClientRect();
+            x = cx - r.left; y = cy - r.top;
+        }
+        t.style.left = x+'px'; t.style.top = y+'px';
+        zone.appendChild(t); setTimeout(() => t.remove(), 600);
+    }
+    function doP() {
+        let cost = 10000 + (cr * 10000);
+        if(m >= cost) { m=0; cr++; p=1; a=0; c1=10; c2=50; artifacts=[]; alert("ПРЕСТИЖ!"); }
+        upd();
+    }
+
+    setInterval(() => { m += (a * (1 + cr * 0.2)) / 10; upd(); }, 100);
+    upd();
+</script>
+</body>
+</html>
